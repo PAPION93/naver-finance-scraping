@@ -8,12 +8,16 @@ import (
 	"log"
 	"net/http"
 	"os"
-	// "github.com/PuerkitoBio/goquery"
+	"strings"
+
+	"github.com/PuerkitoBio/goquery"
+	strip "github.com/grokify/html-strip-tags-go"
 )
 
 type requestResult struct {
-	url string
+	url    string
 	status string
+	datas  []string
 }
 
 var errRequestFailed = errors.New("Request failed")
@@ -21,7 +25,7 @@ var urls []string
 
 func main() {
 
-	results := make(map[string]string)
+	var results []requestResult
 	c := make(chan requestResult)
 
 	// get stock code list
@@ -37,19 +41,20 @@ func main() {
 
 	// request
 	for _, url := range urls {
-		go hitURL(url, c)
+		go hitURI(url, c)
 	}
 
 	// receive
-	for i := 0; i< len(urls); i++ {
-		result := <- c
-		results[result.url] = result.status
+	for i := 0; i < len(urls); i++ {
+		result := <-c
+		results := append(results, result)
+		fmt.Println(results)
 	}
 
 	// get data with goquery
-	for url, status := range results {
-		fmt.Println(url, status)
-	}
+	// for result := range results {
+	// 	fmt.Println(result)
+	// }
 
 }
 
@@ -74,9 +79,11 @@ func getStockListByCSV() (map[int]string, error) {
 
 	return stockMap, nil
 
-}
+} //end of getStockListByCSV()
 
-func hitURL(url string, c chan<- requestResult) {
+func hitURI(url string, c chan<- requestResult) {
+
+	var datas []string
 
 	fmt.Println("Checking:", url)
 
@@ -86,20 +93,22 @@ func hitURL(url string, c chan<- requestResult) {
 
 	defer res.Body.Close()
 
-	// doc, err := goquery.NewDocumentFromReader(res.Body)
-	// checkErr(err)
+	doc, err := goquery.NewDocumentFromReader(res.Body)
+	checkErr(err)
 
-	// doc.Find("외국인 기관 순매매 거래량에 관한표").Each(func(i int, s *goquery.Selection) {
-	// 	// For each item found, get the band and title
-	// 	band := s.Find("tah").Text()
-	// 	fmt.Println(band)
-	//   })
+	doc.Find(".tc").Each(func(i int, s *goquery.Selection) {
+		data, _ := s.Parent().Html()
+		datas = append(datas, cleanString(data))
+	})
 
-	// fmt.Println(doc)
-	
 	status := "success"
-	c <- requestResult{url: url, status: status}
+	c <- requestResult{url: url, status: status, datas: datas}
 
+} //end of hitURI()
+
+func cleanString(str string) string {
+	stripped := strip.StripTags(str)
+	return strings.Join(strings.Fields(strings.TrimSpace(stripped)), " ")
 }
 
 func checkErr(err error) {
