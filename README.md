@@ -8,8 +8,13 @@
 
 > 외국인, 기관 매수 동향 파악하여 리스트화
 
-
 ## About Go
 
 ### 1. goquery
-    $ go get github.com/PuerkitoBio/goquery
+
+    go get github.com/PuerkitoBio/goquery
+
+## To-do
+
+1. 파일 내용 한번에 쓰기가 아닌 추가하기로 수정할 것
+2. 원하는 데이터만 추출
