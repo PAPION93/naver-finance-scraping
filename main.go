@@ -21,6 +21,7 @@ type requestResult struct {
 
 var errRequestFailed = errors.New("Request failed")
 var urls []string
+var stockFile = "stock_list.csv"
 
 func main() {
 
@@ -67,25 +68,30 @@ func writeResultDataToCSV(results []requestResult) {
 	checkErr(err)
 
 	for i := range results {
-		for _, datas := range results[i].datas {
+	L1:
+		for j, datas := range results[i].datas {
 
 			var bodies []string
 			bodies = append(bodies, results[i].url)
 
 			dataSlices := strings.Fields(strings.TrimSpace(datas))
-			for j := range dataSlices {
-				bodies = append(bodies, dataSlices[j])
+			for k := range dataSlices {
+
+				if j == 0 && k == 5 && strings.Contains(dataSlices[k], "-") && dataSlices[k] == "0" {
+					break L1
+				}
+
+				bodies = append(bodies, dataSlices[k])
 			}
 			err = w.Write(bodies)
 			checkErr(err)
-			// bodies = append(bodies, datas[j])
 		}
 	}
 }
 
 func getStockListByCSV() (map[int]string, error) {
 
-	listFile, err := os.Open("./stock_list_1.csv")
+	listFile, err := os.Open(stockFile)
 	if err != nil {
 		return nil, err
 	}
