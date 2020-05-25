@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
@@ -62,7 +63,7 @@ func writeResultDataToCSV(results []requestResult) {
 	w := csv.NewWriter(file)
 	defer w.Flush()
 
-	headers := []string{"URI", "날짜", "종가", "전일비", "등락률", "거래량", "기관순 매매량", "외국인 순매매량", "외국인 보유주수", "외국인 보유율"}
+	headers := []string{"Link", "날짜", "종가", "전일비", "등락률", "거래량", "기관순 매매량", "외국인 순매매량", "외국인 보유주수", "외국인 보유율"}
 
 	err = w.Write(headers)
 	checkErr(err)
@@ -74,13 +75,26 @@ func writeResultDataToCSV(results []requestResult) {
 			var bodies []string
 			bodies = append(bodies, results[i].url)
 
+			// 매매 동향 없는 경우
+			if len(datas) == 0 {
+				break
+			}
+
 			dataSlices := strings.Fields(strings.TrimSpace(datas))
 			for k := range dataSlices {
 
-				if j == 0 && k == 5 && strings.Contains(dataSlices[k], "-") && dataSlices[k] == "0" {
-					break L1
+				// 종가 10,000 이하 제거
+				if j == 0 && k == 1 {
+					price, _ := strconv.Atoi(strings.Replace(dataSlices[k], ",", "", 1))
+					if price < 10000 {
+						break L1
+					}
 				}
 
+				// 기관 동향이 0 또는 하락 종목 제거
+				if j == 0 && k == 5 && (strings.Contains(dataSlices[k], "-") || dataSlices[k] == "0") {
+					break L1
+				}
 				bodies = append(bodies, dataSlices[k])
 			}
 			err = w.Write(bodies)
