@@ -83,18 +83,32 @@ func writeResultDataToCSV(results []requestResult) {
 			dataSlices := strings.Fields(strings.TrimSpace(datas))
 			for k := range dataSlices {
 
-				// 종가 10,000 이하 제거
-				if j == 0 && k == 1 {
-					price, _ := strconv.Atoi(strings.Replace(dataSlices[k], ",", "", 1))
-					if price < 10000 {
-						break L1
+				// 가장 최근 날짜
+				if j == 0 {
+
+					// 종가 10,000 이하 제거
+					if k == 1 {
+						price, _ := strconv.Atoi(strings.Replace(dataSlices[k], ",", "", 1))
+						if price < 10000 {
+							break L1
+						}
+					}
+
+					if k == 5 {
+						// 기관 동향이 0 또는 하락 종목 제거
+						if strings.Contains(dataSlices[k], "-") || dataSlices[k] == "0" {
+							break L1
+						}
+
+						// 기관동향 4000 이상
+						r := strings.NewReplacer(",", "", "+", "")
+						price, _ := strconv.Atoi(r.Replace(dataSlices[k]))
+						if price < 4000 {
+							break L1
+						}
 					}
 				}
 
-				// 기관 동향이 0 또는 하락 종목 제거
-				if j == 0 && k == 5 && (strings.Contains(dataSlices[k], "-") || dataSlices[k] == "0") {
-					break L1
-				}
 				bodies = append(bodies, dataSlices[k])
 			}
 			err = w.Write(bodies)
