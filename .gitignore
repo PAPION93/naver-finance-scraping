@@ -1,2 +1,4 @@
 .vscode
 .idea
+*.csv
+__debug_bin
