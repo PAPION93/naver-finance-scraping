@@ -36,7 +36,7 @@ func Scrape() {
 		urls = append(urls, "https://finance.naver.com/item/frgn.nhn?code="+stockCode)
 	}
 
-	// select
+	// select with go routine
 	for i, url := range urls {
 		if i%500 == 0 {
 			time.Sleep(time.Second * 1)
@@ -50,13 +50,21 @@ func Scrape() {
 		results = append(results, result)
 	}
 
+	// go routine
+	// data processing
+	// processing(results)
+
 	// write
-	writeResultDataToCSV(results)
+	write(results)
 }
 
-func writeResultDataToCSV(results []requestResult) {
+func processing(results []requestResult) {
 
-	file, err := os.Create("기관매매기준.csv")
+}
+
+func write(results []requestResult) {
+
+	file, err := os.Create("./csv/기관매매기준.csv")
 	checkErr(err)
 
 	w := csv.NewWriter(file)
@@ -84,7 +92,6 @@ func writeResultDataToCSV(results []requestResult) {
 
 				// 가장 최근 날짜
 				if j == 0 {
-
 					// 종가 10,000 이하 제거
 					if k == 1 {
 						price, _ := strconv.Atoi(strings.Replace(dataSlices[k], ",", "", 1))
@@ -98,7 +105,6 @@ func writeResultDataToCSV(results []requestResult) {
 						if strings.Contains(dataSlices[k], "-") || dataSlices[k] == "0" {
 							break L1
 						}
-
 						// 기관동향 10,000 이상
 						r := strings.NewReplacer(",", "", "+", "")
 						price, _ := strconv.Atoi(r.Replace(dataSlices[k]))
@@ -117,6 +123,7 @@ func writeResultDataToCSV(results []requestResult) {
 
 				bodies = append(bodies, dataSlices[k])
 			}
+
 			err = w.Write(bodies)
 			checkErr(err)
 		}
@@ -125,7 +132,7 @@ func writeResultDataToCSV(results []requestResult) {
 
 func getStockListByCSV() (map[int]string, error) {
 
-	listFile, err := os.Open("stock_list.csv")
+	listFile, err := os.Open("./csv/stock_list.csv")
 	checkErr(err)
 
 	rdr := csv.NewReader(bufio.NewReader(listFile))
