@@ -19,11 +19,23 @@ type requestResult struct {
 	datas []string
 }
 
+type stockDataList struct {
+	Link            string
+	date            string
+	closingPrice    string
+	fromExpenses    string
+	fluctuationRate string
+	tradingVolume   string
+	instSales       string
+	foreignerSales  string
+	foreignerOwner  string
+	foreignerRate   string
+}
+
 // Scrape func
 func Scrape() {
 
 	var urls []string
-
 	var results []requestResult
 	c := make(chan requestResult)
 
@@ -50,19 +62,82 @@ func Scrape() {
 		results = append(results, result)
 	}
 
-	// go routine
 	// data processing
-	// processing(results)
-
+	processData := processing(results)
 	// write
-	write(results)
+	write(processData)
 }
 
-func processing(results []requestResult) {
+func processing(results []requestResult) [][]string {
 
+	ps := [][]string{}
+
+	index := 0
+
+	for i := range results {
+		for j, datas := range results[i].datas {
+
+			s := []string{}
+
+			// 매매 동향 없는 경우
+			if len(datas) == 0 {
+				break
+			}
+
+			dataSlices := strings.Fields(strings.TrimSpace(datas))
+
+			// 가장 최근 날짜
+			if j == 0 {
+				// 종가 10,000 이하 제거
+				closingPrice, _ := strconv.Atoi(strings.Replace(dataSlices[1], ",", "", 1))
+				if closingPrice < 10000 {
+					break
+				}
+
+				// 기관 동향이 0 또는 하락 종목 제거
+				if strings.Contains(dataSlices[5], "-") || dataSlices[5] == "0" {
+					break
+				}
+
+				// 기관동향 10,000 이상
+				r := strings.NewReplacer(",", "", "+", "")
+				price, _ := strconv.Atoi(r.Replace(dataSlices[5]))
+				if price < 9000 {
+					break
+				}
+			}
+
+			// 전일비 하락일 경우에만
+			// if j == 1 {
+			// 	if !strings.Contains(dataSlices[5], "-") {
+			// 		index--
+			// 		break
+			// 	}
+			// }
+
+			s = append(s,
+				results[i].url,
+				dataSlices[0],
+				dataSlices[1],
+				dataSlices[2],
+				dataSlices[3],
+				dataSlices[4],
+				dataSlices[5],
+				dataSlices[6],
+				dataSlices[7],
+				dataSlices[8],
+			)
+
+			// ps = append(ps, s)
+			ps[index] = s
+			index++
+		}
+	}
+
+	return ps
 }
 
-func write(results []requestResult) {
+func write(processData [][]string) {
 
 	file, err := os.Create("./csv/기관매매기준.csv")
 	checkErr(err)
@@ -71,62 +146,14 @@ func write(results []requestResult) {
 	defer w.Flush()
 
 	headers := []string{"Link", "날짜", "종가", "전일비", "등락률", "거래량", "기관순 매매량", "외국인 순매매량", "외국인 보유주수", "외국인 보유율"}
-
 	err = w.Write(headers)
 	checkErr(err)
 
-	for i := range results {
-	L1:
-		for j, datas := range results[i].datas {
+	for _, datas := range processData {
 
-			var bodies []string
-			bodies = append(bodies, results[i].url)
+		err = w.Write(datas)
+		checkErr(err)
 
-			// 매매 동향 없는 경우
-			if len(datas) == 0 {
-				break
-			}
-
-			dataSlices := strings.Fields(strings.TrimSpace(datas))
-			for k := range dataSlices {
-
-				// 가장 최근 날짜
-				if j == 0 {
-					// 종가 10,000 이하 제거
-					if k == 1 {
-						price, _ := strconv.Atoi(strings.Replace(dataSlices[k], ",", "", 1))
-						if price < 10000 {
-							break L1
-						}
-					}
-
-					if k == 5 {
-						// 기관 동향이 0 또는 하락 종목 제거
-						if strings.Contains(dataSlices[k], "-") || dataSlices[k] == "0" {
-							break L1
-						}
-						// 기관동향 10,000 이상
-						r := strings.NewReplacer(",", "", "+", "")
-						price, _ := strconv.Atoi(r.Replace(dataSlices[k]))
-						if price < 9000 {
-							break L1
-						}
-					}
-				}
-
-				// 전일비 하락일 경우에만
-				if j == 1 && k == 5 {
-					if !strings.Contains(dataSlices[k], "-") {
-						break L1
-					}
-				}
-
-				bodies = append(bodies, dataSlices[k])
-			}
-
-			err = w.Write(bodies)
-			checkErr(err)
-		}
 	}
 }
 
