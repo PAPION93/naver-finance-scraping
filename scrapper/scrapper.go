@@ -8,7 +8,6 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/PuerkitoBio/goquery"
 	strip "github.com/grokify/html-strip-tags-go"
@@ -17,19 +16,6 @@ import (
 type requestResult struct {
 	url   string
 	datas []string
-}
-
-type stockDataList struct {
-	Link            string
-	date            string
-	closingPrice    string
-	fromExpenses    string
-	fluctuationRate string
-	tradingVolume   string
-	instSales       string
-	foreignerSales  string
-	foreignerOwner  string
-	foreignerRate   string
 }
 
 // Scrape func
@@ -49,10 +35,7 @@ func Scrape() {
 	}
 
 	// select with go routine
-	for i, url := range urls {
-		if i%500 == 0 {
-			time.Sleep(time.Second * 1)
-		}
+	for _, url := range urls {
 		go hitURI(url, c)
 	}
 
@@ -64,6 +47,7 @@ func Scrape() {
 
 	// data processing
 	processData := processing(results)
+
 	// write
 	write(processData)
 }
@@ -71,10 +55,10 @@ func Scrape() {
 func processing(results []requestResult) [][]string {
 
 	ps := [][]string{}
-
-	index := 0
-
 	for i := range results {
+
+		tmp := [][]string{}
+
 		for j, datas := range results[i].datas {
 
 			s := []string{}
@@ -88,6 +72,7 @@ func processing(results []requestResult) [][]string {
 
 			// 가장 최근 날짜
 			if j == 0 {
+
 				// 종가 10,000 이하 제거
 				closingPrice, _ := strconv.Atoi(strings.Replace(dataSlices[1], ",", "", 1))
 				if closingPrice < 10000 {
@@ -107,13 +92,13 @@ func processing(results []requestResult) [][]string {
 				}
 			}
 
-			// 전일비 하락일 경우에만
-			// if j == 1 {
-			// 	if !strings.Contains(dataSlices[5], "-") {
-			// 		index--
-			// 		break
-			// 	}
-			// }
+			// -1 day 하락일 경우 작성안함
+			if j == 1 {
+				if !strings.Contains(dataSlices[5], "-") {
+					tmp = [][]string{}
+					break
+				}
+			}
 
 			s = append(s,
 				results[i].url,
@@ -128,9 +113,12 @@ func processing(results []requestResult) [][]string {
 				dataSlices[8],
 			)
 
-			// ps = append(ps, s)
-			ps[index] = s
-			index++
+			tmp = append(tmp, s)
+
+		}
+
+		for _, t := range tmp {
+			ps = append(ps, t)
 		}
 	}
 

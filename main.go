@@ -23,10 +23,13 @@ func handleSaveCSV(c echo.Context) error {
 }
 
 func main() {
+	// scrapper.Scrape()
+
 	e := echo.New()
 	e.GET("/scrape/csv", handleScrapeCSV)
 	e.GET("/scrape/json", handleScrapeJSON)
 	e.GET("/scrape", handleSaveCSV)
 
 	e.Logger.Fatal(e.Start(":8080"))
+
 }

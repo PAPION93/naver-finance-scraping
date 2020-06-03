@@ -15,12 +15,14 @@
 
 ### 1. goquery
 
-    go get github.com/PuerkitoBio/goquery
+go get github.com/PuerkitoBio/goquery
 
 ## To-do
 
 1. ~~csv 파일저장~~
 1. 시각성 높이기
 1. 카카오톡 챗봇으로 받고싶은 데이터
-    - 저장한 파일 기반한 추천 종목
-    - 종목 검색
+
+-   저장한 파일 기반한 추천 종목
+
+-   종목 검색
