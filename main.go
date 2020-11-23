@@ -30,6 +30,6 @@ func main() {
 	e.GET("/scrape/json", handleScrapeJSON)
 	e.GET("/scrape", handleSaveCSV)
 
-	e.Logger.Fatal(e.Start(":8080"))
+	e.Logger.Fatal(e.Start(":8090"))
 
 }

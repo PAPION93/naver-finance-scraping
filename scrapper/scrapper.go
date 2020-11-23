@@ -3,11 +3,13 @@ package scrapper
 import (
 	"bufio"
 	"encoding/csv"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/PuerkitoBio/goquery"
 	strip "github.com/grokify/html-strip-tags-go"
@@ -21,32 +23,25 @@ type requestResult struct {
 // Scrape func
 func Scrape() {
 
-	var urls []string
-	var results []requestResult
-	c := make(chan requestResult)
+	// var urls []string
+	var results []string
+	var requestResults []requestResult
+	// c := make(chan requestResult)
 
 	// get stock code list
 	stockList, err := getStockListByCSV()
 	checkErr(err)
 
 	// url setting
-	for _, stockCode := range stockList {
-		urls = append(urls, "https://finance.naver.com/item/frgn.nhn?code="+stockCode)
-	}
-
-	// select with go routine
-	for _, url := range urls {
-		go hitURI(url, c)
-	}
-
-	// receive
-	for i := 0; i < len(urls); i++ {
-		result := <-c
-		results = append(results, result)
+	for i, stockCode := range stockList {
+		url := "https://finance.naver.com/item/frgn.nhn?code=" + stockCode
+		results = hitURI(url)
+		requestResults = append(requestResults, requestResult{url: url, datas: results})
+		fmt.Println(time.Now(), url, i)
 	}
 
 	// data processing
-	processData := processing(results)
+	processData := processing(requestResults)
 
 	// write
 	write(processData)
@@ -164,9 +159,7 @@ func getStockListByCSV() (map[int]string, error) {
 
 } //end of getStockListByCSV()
 
-func hitURI(url string, c chan<- requestResult) {
-
-	var datas []string
+func hitURI(url string) []string {
 
 	res, err := http.Get(url)
 	checkErr(err)
@@ -177,6 +170,7 @@ func hitURI(url string, c chan<- requestResult) {
 	doc, err := goquery.NewDocumentFromReader(res.Body)
 	checkErr(err)
 
+	var datas []string
 	doc.Find(".tc").EachWithBreak(func(i int, s *goquery.Selection) bool {
 
 		if i >= 5 {
@@ -189,7 +183,7 @@ func hitURI(url string, c chan<- requestResult) {
 		return true
 	})
 
-	c <- requestResult{url: url, datas: datas}
+	return datas
 
 } //end of hitURI()
 
